@@ -33,7 +33,19 @@ const I18N = {
         "flags-label": "Flags:",
         "name-placeholder": "Regex Name",
         "pattern-placeholder": "Pattern (e.g. ^[0-9]+)",
-        "invalid-regex": "Invalid Regex in '{0}': {1}"
+        "invalid-regex": "Invalid Regex in '{0}': {1}",
+        "sec-patterns": "Build Your Patterns",
+        "sec-config": "Benchmark Configuration",
+        "sec-results": "Analysis Results",
+        "file-label": "Select log file (Network_*.log)",
+        "no-file-selected": "No file chosen",
+        "summary-file": "File:",
+        "summary-size": "Size:",
+        "summary-lines": "Lines:",
+        "summary-runs": "Runs:",
+        "summary-warmups": "Warmups:",
+        "runs-hint": "Number of times each regex is executed to calculate the median time.",
+        "warmups-hint": "Initial runs to trigger JIT optimization; these are NOT included in the results."
     },
     zh: {
         "title": "正则表达式性能跑分",
@@ -62,23 +74,49 @@ const I18N = {
         "flags-label": "修饰符:",
         "name-placeholder": "正则名称",
         "pattern-placeholder": "表达式 (例如 ^[0-9]+)",
-        "invalid-regex": "项目中存在错误的正则 '{0}': {1}"
+        "invalid-regex": "项目中存在错误的正则 '{0}': {1}",
+        "sec-patterns": "定义正则模式",
+        "sec-config": "配置测试参数",
+        "sec-results": "查看分析结果",
+        "file-label": "选择日志文件 (Network_*.log)",
+        "no-file-selected": "未选择任何文件",
+        "summary-file": "测试文件:",
+        "summary-size": "文件大小:",
+        "summary-lines": "总行数:",
+        "summary-runs": "运行轮数:",
+        "summary-warmups": "预热轮数:",
+        "runs-hint": "每个正则实际参与统计的执行次数，用于计算中位数耗时。",
+        "warmups-hint": "测试前的热身执行次数，用于触发引擎优化，结果不计入总时。"
     }
 };
 
 let currentLang = 'en';
 
 function applyLang() {
+    // 1. First pass: Handle static translatable elements
     document.querySelectorAll("[data-i18n]").forEach(el => {
         const key = el.getAttribute("data-i18n");
-        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+        if (I18N[currentLang][key]) {
+            if (!el.classList.contains("info-icon")) {
+                el.textContent = I18N[currentLang][key];
+            }
+        }
     });
 
-    // Update drop hint
+    // 2. Special handling for overlays
     const dropP = document.querySelector("#drag-overlay p");
     if (dropP) dropP.textContent = I18N[currentLang]["drop-hint"];
 
+    // 3. Render dynamic content
     renderRegexList();
+
+    // 4. Final pass: Update all hints including newly rendered ones
+    document.querySelectorAll(".info-icon[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (I18N[currentLang][key]) {
+            el.setAttribute("data-hint", I18N[currentLang][key]);
+        }
+    });
 }
 
 function renderRegexList() {
@@ -128,10 +166,24 @@ const regexList = document.getElementById("regex-list");
 const dragOverlay = document.getElementById("drag-overlay");
 const langToggle = document.getElementById("lang-toggle");
 const chartContainer = document.getElementById("chart");
+const resultsSection = document.getElementById("results-section");
+const fileNameDisplay = document.getElementById("file-name");
+const resultsSummary = document.getElementById("results-summary");
+
+function updateFileName() {
+    if (fileInput.files.length > 0) {
+        fileNameDisplay.textContent = fileInput.files[0].name;
+        fileNameDisplay.classList.add("selected");
+    } else {
+        fileNameDisplay.textContent = I18N[currentLang]["no-file-selected"];
+        fileNameDisplay.classList.remove("selected");
+    }
+}
 
 langToggle.onclick = () => {
     currentLang = currentLang === 'en' ? 'zh' : 'en';
     applyLang();
+    updateFileName();
 };
 
 // Global Drag and Drop
@@ -157,6 +209,7 @@ window.addEventListener('drop', (e) => {
     if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
         startBtn.disabled = false;
+        updateFileName();
     }
 });
 
@@ -166,6 +219,7 @@ startBtn.disabled = true;
 
 fileInput.onchange = () => {
     startBtn.disabled = !fileInput.files.length;
+    updateFileName();
 };
 
 startBtn.onclick = async () => {
@@ -189,6 +243,17 @@ startBtn.onclick = async () => {
     const sizeMB = file.size / 1024 / 1024;
 
     resultsTbody.innerHTML = "";
+    resultsSection.classList.remove("hidden");
+
+    // Update summary
+    resultsSummary.innerHTML = `
+        <span><strong>${I18N[currentLang]["summary-file"]}</strong> ${file.name}</span>
+        <span><strong>${I18N[currentLang]["summary-size"]}</strong> ${sizeMB.toFixed(2)} MB</span>
+        <span><strong>${I18N[currentLang]["summary-lines"]}</strong> ${lines.length.toLocaleString()}</span>
+        <span><strong>${I18N[currentLang]["summary-runs"]}</strong> ${runs}</span>
+        <span><strong>${I18N[currentLang]["summary-warmups"]}</strong> ${warmups}</span>
+    `;
+
     statusTxt.textContent = I18N[currentLang]["running"];
 
     const results = [];
@@ -281,6 +346,9 @@ startBtn.onclick = async () => {
     renderChart(processedResults, fastest);
     statusTxt.textContent = I18N[currentLang]["done"];
     startBtn.disabled = false;
+
+    // Smooth scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 function renderChart(results, fastestTime) {

@@ -33,39 +33,61 @@
             <p data-i18n="subtitle">Regex-only benchmark (I/O removed, warmup enforced, median-based)</p>
         </header>
 
-        <div class="panel">
-            <label>
-                <span data-i18n="runs-label">Runs per Regex</span>
-                <input type="number" id="runs" value="5" min="3" max="20">
-            </label>
-            <label>
-                <span data-i18n="warmups-label">Warmup Rounds</span>
-                <input type="number" id="warmups" value="3" min="1" max="10">
-            </label>
-            <input type="file" id="file" accept=".log" />
-            <button id="start" data-i18n="start-btn">Start Benchmark</button>
-        </div>
+        <section class="section">
+            <h2 class="section-title"><span class="step-num">1</span> <span data-i18n="sec-patterns">Define
+                    Patterns</span></h2>
+            <div id="regex-list"></div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title"><span class="step-num">2</span> <span data-i18n="sec-config">Benchmark
+                    Configuration</span></h2>
+            <div class="panel">
+                <label>
+                    <span class="label-row">
+                        <span data-i18n="runs-label">Runs per Regex</span>
+                        <i class="info-icon" data-i18n="runs-hint">i</i>
+                    </span>
+                    <input type="number" id="runs" value="11" min="3" max="21">
+                </label>
+                <label>
+                    <span class="label-row">
+                        <span data-i18n="warmups-label">Warmup Rounds</span>
+                        <i class="info-icon" data-i18n="warmups-hint">i</i>
+                    </span>
+                    <input type="number" id="warmups" value="3" min="1" max="10">
+                </label>
+                <label class="file-upload">
+                    <span data-i18n="file-label">Select log file (.log)</span>
+                    <div id="file-name" class="file-name" data-i18n="no-file-selected">No file chosen</div>
+                    <input type="file" id="file" accept=".log" class="hidden-input" />
+                </label>
+                <button id="start" data-i18n="start-btn">Start Benchmark</button>
+            </div>
+        </section>
 
         <div id="status" class="status"></div>
 
-        <table id="result">
-            <thead>
-                <tr>
-                    <th data-i18n="th-regex">Regex</th>
-                    <th data-i18n="th-time">Median Time (ms)</th>
-                    <th data-i18n="th-throughput">Throughput (lines/s)</th>
-                    <th data-i18n="th-speed">Speed (MB/s)</th>
-                    <th data-i18n="th-matches">Matches</th>
-                    <th data-i18n="th-relative">Relative</th>
-                    <th data-i18n="th-stability">Stability</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <div id="chart" class="chart-container"></div>
-
-        <div id="regex-list"></div>
+        <section id="results-section" class="section hidden">
+            <h2 class="section-title"><span class="step-num">3</span> <span data-i18n="sec-results">Analysis
+                    Results</span></h2>
+            <div id="results-summary" class="results-summary"></div>
+            <table id="result">
+                <thead>
+                    <tr>
+                        <th data-i18n="th-regex">Regex</th>
+                        <th data-i18n="th-time">Median Time (ms)</th>
+                        <th data-i18n="th-throughput">Throughput (lines/s)</th>
+                        <th data-i18n="th-speed">Speed (MB/s)</th>
+                        <th data-i18n="th-matches">Matches</th>
+                        <th data-i18n="th-relative">Relative</th>
+                        <th data-i18n="th-stability">Stability</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id="chart" class="chart-container"></div>
+        </section>
     </div>
 
     <script src="index.js"></script>
