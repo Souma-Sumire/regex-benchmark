@@ -26,21 +26,24 @@
     </div>
     <div class="container">
         <header>
-            <h1>Regex Performance Benchmark</h1>
-            <p>Regex-only benchmark (I/O removed, warmup enforced, median-based)</p>
+            <div class="header-top">
+                <h1 data-i18n="title">Regex Performance Benchmark</h1>
+                <button id="lang-toggle" class="btn-lang" title="Toggle Language">EN / 中</button>
+            </div>
+            <p data-i18n="subtitle">Regex-only benchmark (I/O removed, warmup enforced, median-based)</p>
         </header>
 
         <div class="panel">
             <label>
-                Runs per Regex
+                <span data-i18n="runs-label">Runs per Regex</span>
                 <input type="number" id="runs" value="5" min="3" max="20">
             </label>
             <label>
-                Warmup Rounds
+                <span data-i18n="warmups-label">Warmup Rounds</span>
                 <input type="number" id="warmups" value="3" min="1" max="10">
             </label>
             <input type="file" id="file" accept=".log" />
-            <button id="start">Start Benchmark</button>
+            <button id="start" data-i18n="start-btn">Start Benchmark</button>
         </div>
 
         <div id="status" class="status"></div>
@@ -48,12 +51,12 @@
         <table id="result">
             <thead>
                 <tr>
-                    <th>Regex</th>
-                    <th>Median Time (ms)</th>
-                    <th>Throughput (lines/s)</th>
-                    <th>Speed (MB/s)</th>
-                    <th>Matches</th>
-                    <th>Relative</th>
+                    <th data-i18n="th-regex">Regex</th>
+                    <th data-i18n="th-time">Median Time (ms)</th>
+                    <th data-i18n="th-throughput">Throughput (lines/s)</th>
+                    <th data-i18n="th-speed">Speed (MB/s)</th>
+                    <th data-i18n="th-matches">Matches</th>
+                    <th data-i18n="th-relative">Relative</th>
                 </tr>
             </thead>
             <tbody></tbody>

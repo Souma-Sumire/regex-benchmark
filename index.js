@@ -1,21 +1,77 @@
 const REGEXES = [
-    {
-        name: "Capturing + No Source",
-        regex: /^(?<type>20)\|(?<timestamp>[^|]*)\|(?<sourceId>[^|]*)\|(?<source>[^|]*)\|(?<id>B348)\|/i
-    },
-    {
-        name: "Capturing + Fixed Source",
-        regex: /^(?<type>20)\|(?<timestamp>[^|]*)\|(?<sourceId>[^|]*)\|(?<source>Vamp Fatale|致命美人|ヴァンプ・ファタール)\|(?<id>B348)\|/i
-    },
-    {
-        name: "Non-Capturing + No Source",
-        regex: /^20\|[^|]*\|[^|]*\|[^|]*\|B348\|/i
-    },
-    {
-        name: "Non-Capturing + Fixed Source",
-        regex: /^20\|[^|]*\|[^|]*\|(?:Vamp Fatale|致命美人|ヴァンプ・ファタール)\|B348\|/i
-    }
+    { key: "cap-no-src", regex: /^(?<type>20)\|(?<timestamp>[^|]*)\|(?<sourceId>[^|]*)\|(?<source>[^|]*)\|(?<id>B348)\|/i },
+    { key: "cap-fix-src", regex: /^(?<type>20)\|(?<timestamp>[^|]*)\|(?<sourceId>[^|]*)\|(?<source>Vamp Fatale|致命美人|ヴァンプ・ファタール)\|(?<id>B348)\|/i },
+    { key: "non-cap-no-src", regex: /^20\|[^|]*\|[^|]*\|[^|]*\|B348\|/i },
+    { key: "non-cap-fix-src", regex: /^20\|[^|]*\|[^|]*\|(?:Vamp Fatale|致命美人|ヴァンプ・ファタール)\|B348\|/i }
 ];
+
+const I18N = {
+    en: {
+        "title": "Regex Performance Benchmark",
+        "subtitle": "Regex-only benchmark (I/O removed, warmup enforced, median-based)",
+        "runs-label": "Runs per Regex",
+        "warmups-label": "Warmup Rounds",
+        "start-btn": "Start Benchmark",
+        "th-regex": "Regex",
+        "th-time": "Median Time (ms)",
+        "th-throughput": "Throughput (lines/s)",
+        "th-speed": "Speed (MB/s)",
+        "th-matches": "Matches",
+        "th-relative": "Relative",
+        "cap-no-src": "Capturing + No Source",
+        "cap-fix-src": "Capturing + Fixed Source",
+        "non-cap-no-src": "Non-Capturing + No Source",
+        "non-cap-fix-src": "Non-Capturing + Fixed Source",
+        "loading": "Loading file...",
+        "running": "Running benchmark...",
+        "done": "Done",
+        "drop-hint": "Drop your .log file to start",
+        "confirm-msg": "The benchmark is about to start.\n\nYour browser tab will freeze for a short period while processing. Please DO NOT switch tabs or interact for maximum accuracy.\n\nClick OK to proceed.",
+        "mismatch-err": "Match count mismatch for {0}. Expected {1}, got {2}."
+    },
+    zh: {
+        "title": "正则表达式性能跑分",
+        "subtitle": "纯正则匹配测试（移除 I/O 干扰，强制预热，基于中位数）",
+        "runs-label": "每项运行次数",
+        "warmups-label": "预热轮数",
+        "start-btn": "开始测试",
+        "th-regex": "正则表达式",
+        "th-time": "中位数耗时 (ms)",
+        "th-throughput": "吞吐量 (行/秒)",
+        "th-speed": "速度 (MB/s)",
+        "th-matches": "匹配数",
+        "th-relative": "相对性能",
+        "cap-no-src": "捕捉组 + 无source",
+        "cap-fix-src": "捕捉组 + 有source",
+        "non-cap-no-src": "非捕捉组 + 无source",
+        "non-cap-fix-src": "非捕捉组 + 有source",
+        "loading": "正在加载文件...",
+        "running": "正在进行跑分测试...",
+        "done": "完成",
+        "drop-hint": "拖入 .log 文件开始测试",
+        "confirm-msg": "测试即将开始。\n\n处理期间浏览器标签页会暂时卡住。请不要切换标签或进行任何键鼠操作，以获得最准确的结果。\n\n点击“确定”开始。",
+        "mismatch-err": "{0} 的匹配数量不一致。期望 {1}，实际得到 {2}。"
+    }
+};
+
+let currentLang = 'en';
+
+function applyLang() {
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+    });
+
+    // Update drop hint
+    const dropP = document.querySelector("#drag-overlay p");
+    if (dropP) dropP.textContent = I18N[currentLang]["drop-hint"];
+
+    // Update list
+    regexList.innerHTML = REGEXES.map(r => {
+        const escaped = r.regex.toString().replace(/[<>]/g, m => ({ '<': '&lt;', '>': '&gt;' }[m]));
+        return `<div><strong>${I18N[currentLang][r.key]}</strong><code>${escaped}</code></div>`;
+    }).join("");
+}
 
 const fileInput = document.getElementById("file");
 const startBtn = document.getElementById("start");
@@ -23,6 +79,12 @@ const statusTxt = document.getElementById("status");
 const resultsTbody = document.querySelector("#result tbody");
 const regexList = document.getElementById("regex-list");
 const dragOverlay = document.getElementById("drag-overlay");
+const langToggle = document.getElementById("lang-toggle");
+
+langToggle.onclick = () => {
+    currentLang = currentLang === 'en' ? 'zh' : 'en';
+    applyLang();
+};
 
 // Global Drag and Drop
 let dragCounter = 0;
@@ -50,10 +112,7 @@ window.addEventListener('drop', (e) => {
     }
 });
 
-regexList.innerHTML = REGEXES.map(r => {
-    const escaped = r.regex.toString().replace(/[<>]/g, m => ({ '<': '&lt;', '>': '&gt;' }[m]));
-    return `<div><strong>${r.name}</strong><code>${escaped}</code></div>`;
-}).join("");
+applyLang();
 
 startBtn.disabled = true;
 
@@ -70,27 +129,22 @@ startBtn.onclick = async () => {
     const runs = Number(document.getElementById("runs").value);
     const warmups = Number(document.getElementById("warmups").value);
 
-    const confirmed = window.confirm(
-        "The benchmark is about to start.\n\n" +
-        "Your browser tab will freeze for a short period while processing. " +
-        "Please DO NOT switch tabs or interact with your keyboard/mouse for maximum accuracy.\n\n" +
-        "Click OK to proceed."
-    );
+    const confirmed = window.confirm(I18N[currentLang]["confirm-msg"]);
     if (!confirmed) {
         startBtn.disabled = false;
         return;
     }
 
-    status.textContent = "Loading file…";
+    statusTxt.textContent = I18N[currentLang]["loading"];
     const text = await file.text();
     const lines = text.split(/\r?\n/);
     const sizeMB = file.size / 1024 / 1024;
 
     resultsTbody.innerHTML = "";
-    statusTxt.textContent = "Running benchmark…";
+    statusTxt.textContent = I18N[currentLang]["running"];
 
     const results = REGEXES.map(entry => ({
-        name: entry.name,
+        key: entry.key,
         regex: new RegExp(entry.regex.source, entry.regex.flags),
         times: [],
         matches: null
@@ -108,7 +162,11 @@ startBtn.onclick = async () => {
             res.times.push(time);
             if (res.matches === null) res.matches = matches;
             else if (res.matches !== matches) {
-                throw new Error(`Match count mismatch for ${res.name}. Expected ${res.matches}, got ${matches}.`);
+                const msg = I18N[currentLang]["mismatch-err"]
+                    .replace("{0}", I18N[currentLang][res.key])
+                    .replace("{1}", res.matches)
+                    .replace("{2}", matches);
+                throw new Error(msg);
             }
         }
     }
@@ -117,7 +175,7 @@ startBtn.onclick = async () => {
         res.times.sort((a, b) => a - b);
         const median = res.times[Math.floor(res.times.length / 2)];
         return {
-            name: res.name,
+            name: I18N[currentLang][res.key],
             time: median,
             throughput: lines.length / (median / 1000),
             speed: sizeMB / (median / 1000),
@@ -134,7 +192,7 @@ startBtn.onclick = async () => {
         resultsTbody.appendChild(tr);
     }
 
-    statusTxt.textContent = "Done";
+    statusTxt.textContent = I18N[currentLang]["done"];
     startBtn.disabled = false;
 };
 
