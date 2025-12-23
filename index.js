@@ -80,6 +80,7 @@ const resultsTbody = document.querySelector("#result tbody");
 const regexList = document.getElementById("regex-list");
 const dragOverlay = document.getElementById("drag-overlay");
 const langToggle = document.getElementById("lang-toggle");
+const chartContainer = document.getElementById("chart");
 
 langToggle.onclick = () => {
     currentLang = currentLang === 'en' ? 'zh' : 'en';
@@ -192,9 +193,29 @@ startBtn.onclick = async () => {
         resultsTbody.appendChild(tr);
     }
 
+    renderChart(processedResults, fastest);
     statusTxt.textContent = I18N[currentLang]["done"];
     startBtn.disabled = false;
 };
+
+function renderChart(results, fastestTime) {
+    chartContainer.style.display = 'block';
+    chartContainer.innerHTML = results.map(r => {
+        const ratio = (fastestTime / r.time) * 100;
+        const isWinner = r.time === fastestTime;
+        return `
+            <div class="chart-row ${isWinner ? 'winner' : ''}">
+                <div class="chart-label">
+                    <span>${r.name}</span>
+                    <span>${ratio.toFixed(1)}%</span>
+                </div>
+                <div class="chart-bar-bg">
+                    <div class="chart-bar" style="width: ${ratio}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
 function runRegex(lines, regex) {
     let matches = 0;
