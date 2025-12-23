@@ -28,7 +28,12 @@ const I18N = {
         "done": "Done",
         "drop-hint": "Drop your .log file to start",
         "confirm-msg": "The benchmark is about to start.\n\nYour browser tab will freeze for a short period while processing. Please DO NOT switch tabs or interact for maximum accuracy.\n\nClick OK to proceed.",
-        "mismatch-err": "Match count mismatch for {0}. Expected {1}, got {2}."
+        "mismatch-err": "Match count mismatch for {0}. Expected {1}, got {2}.",
+        "add-btn": "+ Add Pattern",
+        "flags-label": "Flags:",
+        "name-placeholder": "Regex Name",
+        "pattern-placeholder": "Pattern (e.g. ^[0-9]+)",
+        "invalid-regex": "Invalid Regex in '{0}': {1}"
     },
     zh: {
         "title": "正则表达式性能跑分",
@@ -52,7 +57,12 @@ const I18N = {
         "done": "完成",
         "drop-hint": "拖入 .log 文件开始测试",
         "confirm-msg": "测试即将开始。\n\n处理期间浏览器标签页会暂时卡住。请不要切换标签或进行任何键鼠操作，以获得最准确的结果。\n\n点击“确定”开始。",
-        "mismatch-err": "{0} 的匹配数量不一致。期望 {1}，实际得到 {2}。"
+        "mismatch-err": "{0} 的匹配数量不一致。期望 {1}，实际得到 {2}。",
+        "add-btn": "+ 添加正则",
+        "flags-label": "修饰符:",
+        "name-placeholder": "正则名称",
+        "pattern-placeholder": "表达式 (例如 ^[0-9]+)",
+        "invalid-regex": "项目中存在错误的正则 '{0}': {1}"
     }
 };
 
@@ -68,12 +78,47 @@ function applyLang() {
     const dropP = document.querySelector("#drag-overlay p");
     if (dropP) dropP.textContent = I18N[currentLang]["drop-hint"];
 
-    // Update list
-    regexList.innerHTML = REGEXES.map(r => {
-        const escaped = r.regex.toString().replace(/[<>]/g, m => ({ '<': '&lt;', '>': '&gt;' }[m]));
-        return `<div><strong>${I18N[currentLang][r.key]}</strong><code>${escaped}</code></div>`;
-    }).join("");
+    renderRegexList();
 }
+
+function renderRegexList() {
+    regexList.innerHTML = REGEXES.map((r, i) => `
+        <div class="regex-card" data-index="${i}">
+            <div class="card-header">
+                <input type="text" class="regex-name" 
+                       value="${I18N[currentLang][r.key] || r.name || ''}" 
+                       placeholder="${I18N[currentLang]['name-placeholder']}"
+                       oninput="REGEXES[${i}].name = this.value; delete REGEXES[${i}].key">
+                <button class="btn-delete" onclick="removeRegex(${i})">×</button>
+            </div>
+            <textarea class="regex-pattern" 
+                      placeholder="${I18N[currentLang]['pattern-placeholder']}"
+                      spellcheck="false"
+                      oninput="REGEXES[${i}].source = this.value">${r.regex ? r.regex.source : (r.source || '')}</textarea>
+            <div class="card-footer">
+                <label>${I18N[currentLang]['flags-label']} 
+                    <input type="text" class="regex-flags" 
+                           value="${r.regex ? r.regex.flags : (r.flags || 'i')}" 
+                           oninput="REGEXES[${i}].flags = this.value">
+                </label>
+            </div>
+        </div>
+    `).join("") + `
+        <button class="btn-add-regex" onclick="addRegex()">
+            ${I18N[currentLang]['add-btn']}
+        </button>
+    `;
+}
+
+window.removeRegex = (index) => {
+    REGEXES.splice(index, 1);
+    renderRegexList();
+};
+
+window.addRegex = () => {
+    REGEXES.push({ name: "", source: "", flags: "i" });
+    renderRegexList();
+};
 
 const fileInput = document.getElementById("file");
 const startBtn = document.getElementById("start");
@@ -146,12 +191,36 @@ startBtn.onclick = async () => {
     resultsTbody.innerHTML = "";
     statusTxt.textContent = I18N[currentLang]["running"];
 
-    const results = REGEXES.map(entry => ({
-        key: entry.key,
-        regex: new RegExp(entry.regex.source, entry.regex.flags),
-        times: [],
-        matches: null
-    }));
+    const results = [];
+    for (const entry of REGEXES) {
+        try {
+            const source = entry.source !== undefined ? entry.source : entry.regex.source;
+            const flags = entry.flags !== undefined ? entry.flags : entry.regex.flags;
+            if (!source) continue;
+
+            results.push({
+                name: I18N[currentLang][entry.key] || entry.name || source,
+                regex: new RegExp(source, flags),
+                times: [],
+                matches: null,
+                key: entry.key
+            });
+        } catch (e) {
+            const errorMsg = I18N[currentLang]["invalid-regex"]
+                .replace("{0}", entry.name || "Unknown")
+                .replace("{1}", e.message);
+            alert(errorMsg);
+            startBtn.disabled = false;
+            statusTxt.textContent = "Error";
+            return;
+        }
+    }
+
+    if (results.length === 0) {
+        startBtn.disabled = false;
+        statusTxt.textContent = "No valid regex";
+        return;
+    }
 
     // Warmup phase (sequentially is fine for JIT)
     for (const res of results) {
@@ -165,8 +234,9 @@ startBtn.onclick = async () => {
             res.times.push(time);
             if (res.matches === null) res.matches = matches;
             else if (res.matches !== matches) {
+                const name = res.key ? I18N[currentLang][res.key] : res.name;
                 const msg = I18N[currentLang]["mismatch-err"]
-                    .replace("{0}", I18N[currentLang][res.key])
+                    .replace("{0}", name)
                     .replace("{1}", res.matches)
                     .replace("{2}", matches);
                 throw new Error(msg);
