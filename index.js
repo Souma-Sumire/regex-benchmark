@@ -127,19 +127,19 @@ function renderRegexList() {
                        value="${I18N[currentLang][r.key] || r.name || ''}" 
                        placeholder="${I18N[currentLang]['name-placeholder']}"
                        oninput="REGEXES[${i}].name = this.value; delete REGEXES[${i}].key">
-                <button class="btn-delete" onclick="removeRegex(${i})">×</button>
+                <div class="header-actions">
+                    <span class="flags-mini-label" data-i18n="flags-label">Flags:</span>
+                    <input type="text" class="regex-flags" 
+                           value="${r.regex ? r.regex.flags : (r.flags || 'i')}" 
+                           placeholder="flags"
+                           oninput="REGEXES[${i}].flags = this.value">
+                    <button class="btn-delete" onclick="removeRegex(${i})">×</button>
+                </div>
             </div>
             <textarea class="regex-pattern" 
                       placeholder="${I18N[currentLang]['pattern-placeholder']}"
                       spellcheck="false"
                       oninput="REGEXES[${i}].source = this.value">${r.regex ? r.regex.source : (r.source || '')}</textarea>
-            <div class="card-footer">
-                <label>${I18N[currentLang]['flags-label']} 
-                    <input type="text" class="regex-flags" 
-                           value="${r.regex ? r.regex.flags : (r.flags || 'i')}" 
-                           oninput="REGEXES[${i}].flags = this.value">
-                </label>
-            </div>
         </div>
     `).join("") + `
         <button class="btn-add-regex" onclick="addRegex()">
@@ -160,12 +160,10 @@ window.addRegex = () => {
 
 const fileInput = document.getElementById("file");
 const startBtn = document.getElementById("start");
-const statusTxt = document.getElementById("status");
 const resultsTbody = document.querySelector("#result tbody");
 const regexList = document.getElementById("regex-list");
 const dragOverlay = document.getElementById("drag-overlay");
 const langToggle = document.getElementById("lang-toggle");
-const chartContainer = document.getElementById("chart");
 const resultsSection = document.getElementById("results-section");
 const fileNameDisplay = document.getElementById("file-name");
 const resultsSummary = document.getElementById("results-summary");
@@ -234,27 +232,19 @@ startBtn.onclick = async () => {
     const confirmed = window.confirm(I18N[currentLang]["confirm-msg"]);
     if (!confirmed) {
         startBtn.disabled = false;
+        startBtn.classList.remove("is-running");
+        startBtn.textContent = I18N[currentLang]["start-btn"];
         return;
     }
 
-    statusTxt.textContent = I18N[currentLang]["loading"];
     const text = await file.text();
     const lines = text.split(/\r?\n/);
     const sizeMB = file.size / 1024 / 1024;
 
     resultsTbody.innerHTML = "";
-    resultsSection.classList.remove("hidden");
-
-    // Update summary
-    resultsSummary.innerHTML = `
-        <span><strong>${I18N[currentLang]["summary-file"]}</strong> ${file.name}</span>
-        <span><strong>${I18N[currentLang]["summary-size"]}</strong> ${sizeMB.toFixed(2)} MB</span>
-        <span><strong>${I18N[currentLang]["summary-lines"]}</strong> ${lines.length.toLocaleString()}</span>
-        <span><strong>${I18N[currentLang]["summary-runs"]}</strong> ${runs}</span>
-        <span><strong>${I18N[currentLang]["summary-warmups"]}</strong> ${warmups}</span>
-    `;
-
-    statusTxt.textContent = I18N[currentLang]["running"];
+    startBtn.textContent = I18N[currentLang]["running"];
+    // Yield to browser to ensure button state is painted
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     const results = [];
     for (const entry of REGEXES) {
@@ -265,6 +255,8 @@ startBtn.onclick = async () => {
 
             results.push({
                 name: I18N[currentLang][entry.key] || entry.name || source,
+                source: source,
+                flags: flags,
                 regex: new RegExp(source, flags),
                 times: [],
                 matches: null,
@@ -276,14 +268,16 @@ startBtn.onclick = async () => {
                 .replace("{1}", e.message);
             alert(errorMsg);
             startBtn.disabled = false;
-            statusTxt.textContent = "Error";
+            startBtn.classList.remove("is-running");
+            startBtn.textContent = I18N[currentLang]["start-btn"];
             return;
         }
     }
 
     if (results.length === 0) {
         startBtn.disabled = false;
-        statusTxt.textContent = "No valid regex";
+        startBtn.classList.remove("is-running");
+        startBtn.textContent = I18N[currentLang]["start-btn"];
         return;
     }
 
@@ -319,7 +313,9 @@ startBtn.onclick = async () => {
         const median = res.times[Math.floor(n / 2)];
 
         return {
-            name: I18N[currentLang][res.key],
+            name: res.name,
+            source: res.source,
+            flags: res.flags,
             time: median,
             throughput: lines.length / (median / 1000),
             speed: sizeMB / (median / 1000),
@@ -330,45 +326,64 @@ startBtn.onclick = async () => {
 
     const fastest = Math.min(...processedResults.map(r => r.time));
 
+    // Show results section and update summary only when data is ready
+    resultsSection.classList.remove("hidden");
+    resultsSummary.innerHTML = `
+        <span><strong>${I18N[currentLang]["summary-file"]}</strong> ${file.name}</span>
+        <span><strong>${I18N[currentLang]["summary-size"]}</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+        <span><strong>${I18N[currentLang]["summary-lines"]}</strong> ${lines.length.toLocaleString()}</span>
+        <span><strong>${I18N[currentLang]["summary-runs"]}</strong> ${runs}</span>
+        <span><strong>${I18N[currentLang]["summary-warmups"]}</strong> ${warmups}</span>
+    `;
+
     for (const r of processedResults) {
-        const tr = document.createElement("tr");
-        if (r.time === fastest) tr.classList.add("fastest");
+        const isFastest = r.time === fastest;
 
         // Stability color coding
         let stabColor = "var(--good)";
         if (r.stability > 10) stabColor = "#f59e0b"; // Warning
         if (r.stability > 25) stabColor = "#ef4444"; // Meta-unstable
 
-        tr.innerHTML = `<td>${r.name}</td><td>${r.time.toFixed(2)}</td><td>${Number(r.throughput.toFixed(0)).toLocaleString()}</td><td>${r.speed.toFixed(2)}</td><td>${r.matches.toLocaleString()}</td><td>${(fastest / r.time * 100).toFixed(1)}%</td><td style="color: ${stabColor}">${r.stability < 1 ? '<1' : r.stability.toFixed(1)}%</td>`;
-        resultsTbody.appendChild(tr);
+        const escapedSource = r.source.replace(/[<>]/g, m => ({ '<': '&lt;', '>': '&gt;' }[m]));
+
+        // Main Data Row
+        const mainTr = document.createElement("tr");
+        if (isFastest) mainTr.classList.add("fastest");
+        mainTr.innerHTML = `
+            <td><div class="res-name">${r.name}</div></td>
+            <td>${r.time.toFixed(2)}</td>
+            <td>${Number(r.throughput.toFixed(0)).toLocaleString()}</td>
+            <td>${r.speed.toFixed(2)}</td>
+            <td>${r.matches.toLocaleString()}</td>
+            <td>${(fastest / r.time * 100).toFixed(1)}%</td>
+            <td style="color: ${stabColor}">${r.stability < 1 ? '<1' : r.stability.toFixed(1)}%</td>
+        `;
+        resultsTbody.appendChild(mainTr);
+
+        // Pattern Detail Row (Full Width with Performance Bar)
+        const ratio = (fastest / r.time) * 100;
+        const patternTr = document.createElement("tr");
+        if (isFastest) patternTr.classList.add("fastest");
+        patternTr.classList.add("pattern-row");
+        patternTr.innerHTML = `
+            <td colspan="7">
+                <div class="res-bar-container">
+                    <div class="res-bar" style="width: ${ratio}%"></div>
+                    <div class="res-pattern-full">/${escapedSource}/${r.flags}</div>
+                </div>
+            </td>
+        `;
+        resultsTbody.appendChild(patternTr);
     }
 
-    renderChart(processedResults, fastest);
-    statusTxt.textContent = I18N[currentLang]["done"];
+    startBtn.textContent = I18N[currentLang]["done"]; // This will be immediately overwritten by the next line, but keeping for consistency with original flow
     startBtn.disabled = false;
+    startBtn.classList.remove("is-running");
+    startBtn.textContent = I18N[currentLang]["start-btn"];
 
     // Smooth scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
-
-function renderChart(results, fastestTime) {
-    chartContainer.style.display = 'block';
-    chartContainer.innerHTML = results.map(r => {
-        const ratio = (fastestTime / r.time) * 100;
-        const isWinner = r.time === fastestTime;
-        return `
-            <div class="chart-row ${isWinner ? 'winner' : ''}">
-                <div class="chart-label">
-                    <span>${r.name}</span>
-                    <span>${ratio.toFixed(1)}%</span>
-                </div>
-                <div class="chart-bar-bg">
-                    <div class="chart-bar" style="width: ${ratio}%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
 
 function runRegex(lines, regex) {
     let matches = 0;
@@ -378,15 +393,4 @@ function runRegex(lines, regex) {
         if (regex.test(lines[i])) matches++;
     }
     return { time: performance.now() - start, matches };
-}
-
-function measureBaseline(lines, runs) {
-    const times = [];
-    for (let r = 0; r < runs; r++) {
-        const start = performance.now();
-        for (let i = 0; i < lines.length; i++) { }
-        times.push(performance.now() - start);
-    }
-    times.sort((a, b) => a - b);
-    return times[Math.floor(times.length / 2)];
 }

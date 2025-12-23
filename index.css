@@ -153,12 +153,12 @@ header p {
 
 .panel {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   justify-content: space-between;
   align-items: stretch;
   background: var(--card);
   backdrop-filter: blur(12px);
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4);
@@ -174,6 +174,7 @@ label {
   flex-direction: column;
   gap: 0.4rem;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .label-row {
@@ -256,12 +257,13 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .file-upload {
-  flex: 2;
+  flex: 1;
   cursor: pointer;
   display: flex !important;
   flex-direction: column;
   gap: 0.4rem;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .file-name {
@@ -281,13 +283,18 @@ input[type="number"]::-webkit-inner-spin-button {
   font-family: 'Inter', sans-serif;
   height: 38px;
   box-sizing: border-box;
+  min-width: 150px;
 }
 
 button#start {
   align-self: flex-end;
   height: 38px;
-  padding: 0 2rem;
+  padding: 0;
   margin-bottom: 0px;
+  width: 180px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
 }
 
 input:focus {
@@ -329,14 +336,10 @@ button:disabled {
   border: 1px solid var(--border);
 }
 
-.status {
-  text-align: center;
-  margin: 1rem 0;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  color: var(--primary);
-  font-weight: 500;
-  min-height: 1.2rem;
+button.is-running {
+  background: var(--primary);
+  filter: brightness(1.1);
+  cursor: wait;
 }
 
 table {
@@ -353,8 +356,8 @@ table {
 
 th {
   background: rgba(255, 255, 255, 0.03);
-  padding: 0.75rem 1rem;
-  font-size: 0.7rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--muted);
@@ -364,10 +367,72 @@ th {
 }
 
 td {
-  padding: 0.85rem 1rem;
+  padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.res-name {
+  font-weight: 700;
+  color: var(--fg);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.pattern-row td {
+  padding-top: 0 !important;
+  padding-bottom: 0.4rem !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+tr:not(.pattern-row) td {
+  border-bottom: none;
+}
+
+.res-pattern-full {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+  opacity: 0.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 0.15rem 0.4rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  line-height: 1.2;
+  position: relative;
+  z-index: 2;
+}
+
+.res-bar-container {
+  position: relative;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.res-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.25) 100%);
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+tr.fastest .res-bar {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.3) 100%);
+}
+
+tr.fastest.pattern-row td {
+  color: var(--good);
+  opacity: 0.9;
 }
 
 tr:last-child td {
@@ -376,24 +441,24 @@ tr:last-child td {
 
 th:first-child, td:first-child { 
   text-align: left; 
-  padding-left: 1.25rem; 
+  padding-left: 1rem; 
 }
 
 th:not(:first-child), td:not(:first-child) { 
   text-align: right; 
-  padding-right: 1.25rem; 
+  padding-right: 1rem; 
 }
 
 .results-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 2rem;
-  margin-bottom: 1.25rem;
-  padding: 0.6rem 1rem;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.75rem;
   background: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--muted);
 }
 
@@ -439,7 +504,14 @@ tr.fastest td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .regex-name {
@@ -448,11 +520,38 @@ tr.fastest td {
   border: none;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--primary);
+  color: var(--muted);
   font-weight: 700;
-  padding: 0;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
   outline: none;
+}
+
+.flags-mini-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.regex-flags {
+  width: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.regex-flags:focus {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  width: 50px;
 }
 
 .regex-name:focus {
@@ -460,21 +559,15 @@ tr.fastest td {
 }
 
 .btn-delete {
-  background: rgba(239, 68, 68, 0.05);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.1);
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 1rem;
-  line-height: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
   cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
   transition: all 0.2s;
-  box-shadow: none;
+  opacity: 0.5;
 }
 
 .btn-delete:hover {
@@ -485,51 +578,25 @@ tr.fastest td {
 
 .regex-pattern {
   width: 100%;
-  min-height: 48px;
+  min-height: 28px;
+  height: 28px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--fg);
   background: rgba(0, 0, 0, 0.3);
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
   resize: vertical;
   outline: none;
   transition: all 0.2s;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 
 .regex-pattern:focus {
   border-color: var(--primary);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 0 3px var(--primary-glow);
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -0.25rem;
-}
-
-.card-footer label {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  text-transform: none;
-}
-
-.regex-flags {
-  background: rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border);
-  color: var(--good);
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  width: 50px;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 0.7rem;
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
 .btn-add-regex {
@@ -553,51 +620,8 @@ tr.fastest td {
   transform: translateY(-2px);
 }
 
-.chart-container {
-  margin-top: 2rem;
-  background: var(--card);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  padding: 1.5rem;
-  display: none; /* Hidden until results are ready */
-}
-
-.chart-row {
-  margin-bottom: 1.25rem;
-}
-
-.chart-row:last-child {
-  margin-bottom: 0;
-}
-
-.chart-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--fg);
-  margin-bottom: 0.5rem;
-  display: flex;
-  justify-content: space-between;
-}
-
-.chart-bar-bg {
-  height: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.chart-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), #818cf8);
-  width: 0%;
-  transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border-radius: 6px;
-}
-
-.chart-row.winner .chart-bar {
-  background: linear-gradient(90deg, var(--good), #34d399);
+button:active {
+  transform: translateY(0);
 }
 
 .drag-overlay {
