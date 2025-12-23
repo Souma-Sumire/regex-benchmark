@@ -18,6 +18,7 @@ const I18N = {
         "th-speed": "Speed (MB/s)",
         "th-matches": "Matches",
         "th-relative": "Relative",
+        "th-stability": "Stability",
         "cap-no-src": "Capturing + No Source",
         "cap-fix-src": "Capturing + Fixed Source",
         "non-cap-no-src": "Non-Capturing + No Source",
@@ -41,6 +42,7 @@ const I18N = {
         "th-speed": "速度 (MB/s)",
         "th-matches": "匹配数",
         "th-relative": "相对性能",
+        "th-stability": "稳定性",
         "cap-no-src": "捕捉组 + 无source",
         "cap-fix-src": "捕捉组 + 有source",
         "non-cap-no-src": "非捕捉组 + 无source",
@@ -173,14 +175,21 @@ startBtn.onclick = async () => {
     }
 
     const processedResults = results.map(res => {
+        const n = res.times.length;
+        const avg = res.times.reduce((a, b) => a + b, 0) / n;
+        const stdDev = Math.sqrt(res.times.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b, 0) / n);
+        const cv = (stdDev / avg) * 100; // Coefficient of Variation
+
         res.times.sort((a, b) => a - b);
-        const median = res.times[Math.floor(res.times.length / 2)];
+        const median = res.times[Math.floor(n / 2)];
+
         return {
             name: I18N[currentLang][res.key],
             time: median,
             throughput: lines.length / (median / 1000),
             speed: sizeMB / (median / 1000),
-            matches: res.matches
+            matches: res.matches,
+            stability: cv
         };
     });
 
@@ -189,7 +198,13 @@ startBtn.onclick = async () => {
     for (const r of processedResults) {
         const tr = document.createElement("tr");
         if (r.time === fastest) tr.classList.add("fastest");
-        tr.innerHTML = `<td>${r.name}</td><td>${r.time.toFixed(2)}</td><td>${Number(r.throughput.toFixed(0)).toLocaleString()}</td><td>${r.speed.toFixed(2)}</td><td>${r.matches.toLocaleString()}</td><td>${(fastest / r.time * 100).toFixed(1)}%</td>`;
+
+        // Stability color coding
+        let stabColor = "var(--good)";
+        if (r.stability > 10) stabColor = "#f59e0b"; // Warning
+        if (r.stability > 25) stabColor = "#ef4444"; // Meta-unstable
+
+        tr.innerHTML = `<td>${r.name}</td><td>${r.time.toFixed(2)}</td><td>${Number(r.throughput.toFixed(0)).toLocaleString()}</td><td>${r.speed.toFixed(2)}</td><td>${r.matches.toLocaleString()}</td><td>${(fastest / r.time * 100).toFixed(1)}%</td><td style="color: ${stabColor}">${r.stability < 1 ? '<1' : r.stability.toFixed(1)}%</td>`;
         resultsTbody.appendChild(tr);
     }
 
