@@ -339,10 +339,10 @@ startBtn.onclick = async () => {
     for (const r of processedResults) {
         const isFastest = r.time === fastest;
 
-        // Stability color coding
+        // Stability color coding (Balanced thresholds)
         let stabColor = "var(--good)";
-        if (r.stability > 10) stabColor = "#f59e0b"; // Warning
-        if (r.stability > 25) stabColor = "#ef4444"; // Meta-unstable
+        if (r.stability > 5) stabColor = "#f59e0b"; // Warning starts at 5%
+        if (r.stability > 12) stabColor = "#ef4444"; // Unstable starts at 12%
 
         const escapedSource = r.source.replace(/[<>]/g, m => ({ '<': '&lt;', '>': '&gt;' }[m]));
 
