@@ -259,8 +259,8 @@ startBtn.onclick = async () => {
                 flags: flags,
                 regex: new RegExp(source, flags),
                 times: [],
-                matches: null,
-                key: entry.key
+                matches: 0,
+                key: entry.key,
             });
         } catch (e) {
             const errorMsg = I18N[currentLang]["invalid-regex"]
@@ -283,22 +283,21 @@ startBtn.onclick = async () => {
 
     // Warmup phase (sequentially is fine for JIT)
     for (const res of results) {
-        for (let i = 0; i < warmups; i++) runRegex(lines, res.regex);
+        for (let i = 0; i < warmups; i++)
+            for (const line of lines) res.regex.test(line);
     }
 
     // Interleaved formal runs for fairness
     for (let i = 0; i < runs; i++) {
-        for (const res of results) {
-            const { time, matches } = runRegex(lines, res.regex);
-            res.times.push(time);
-            if (res.matches === null) res.matches = matches;
-            else if (res.matches !== matches) {
-                const name = res.key ? I18N[currentLang][res.key] : res.name;
-                const msg = I18N[currentLang]["mismatch-err"]
-                    .replace("{0}", name)
-                    .replace("{1}", res.matches)
-                    .replace("{2}", matches);
-                throw new Error(msg);
+        for (const line of lines) {
+            for (const res of results) {
+                res.times[i] ??= 0;
+                res.regex.lastIndex = 0;
+                const start = performance.now();
+                const isMatch = res.regex.test(line);
+                res.times[i] += performance.now() - start;
+
+                if (i === 0 && isMatch) res.matches++;
             }
         }
     }
@@ -384,13 +383,3 @@ startBtn.onclick = async () => {
     // Smooth scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
-
-function runRegex(lines, regex) {
-    let matches = 0;
-    const start = performance.now();
-    for (let i = 0; i < lines.length; i++) {
-        regex.lastIndex = 0;
-        if (regex.test(lines[i])) matches++;
-    }
-    return { time: performance.now() - start, matches };
-}
